@@ -85,4 +85,6 @@ define prepare_rootfs
 	rm -f $(1)/usr/lib/opkg/info/*.prerm*
 	$(call clean_ipkg,$(1))
 	$(call mklibs,$(1))
+	if [ -x "$(TARGET_DIR)/patch.sh" ]; then "$(TARGET_DIR)/patch.sh"; fi
+	rm -f "$(TARGET_DIR)/patch.sh"
 endef
