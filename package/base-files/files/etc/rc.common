@@ -1,5 +1,6 @@
 #!/bin/sh
 # Copyright (C) 2006-2012 OpenWrt.org
+# (C) 2014-2017 additions by Joerg Jungermann
 
 . $IPKG_INSTROOT/lib/functions.sh
 . $IPKG_INSTROOT/lib/functions/service.sh
@@ -7,6 +8,26 @@
 initscript=$1
 action=${2:-help}
 shift 2
+
+resolv_initscript() {
+  [ -L "$initscript" ] && \
+  case "$initscript" in
+    ${IPKG_INSTROOT}/etc/init.d/* )
+      ;;
+    * )
+      case "$(readlink "$initscript")" in
+        /* ) initscript="$(readlink "$initscript")" ;;
+        * )
+          initscript="${initscript%/*}/$(readlink "$initscript")"
+          initscript="$(readlink -f "${initscript%/*}")/${initscript##*/}"
+          ;;
+      esac
+      resolv_initscript
+      ;;
+  esac
+}
+which readlink > /dev/null && \
+  resolv_initscript
 
 start() {
 	return 0
@@ -92,6 +113,9 @@ service_running() {
 	return 0
 }
 
+en() { enable; }
+dis() { disable; }
+
 ${INIT_TRACE:+set -x}
 
 . "$initscript"
@@ -139,7 +163,9 @@ ${INIT_TRACE:+set -x}
 	}
 }
 
-ALL_COMMANDS="start stop reload restart boot shutdown enable disable enabled depends ${EXTRA_COMMANDS}"
+ALL_COMMANDS="start stop reload restart boot shutdown en enable dis disable enabled depends ${EXTRA_COMMANDS}"
 list_contains ALL_COMMANDS "$action" || action=help
 [ "$action" = "reload" ] && action='eval reload "$@" || restart "$@" && :'
 $action "$@"
+
+# vim: ts=2 sw=2 et ft=sh
